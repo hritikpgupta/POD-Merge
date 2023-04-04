@@ -65,6 +65,13 @@ class MonitorServiceImpl : MonitoringService {
         LOG.info("Processing file : $docName")
         val folderName = docName.substring(0, docName.indexOf(".")).split(" ".toRegex()).dropLastWhile { it.isEmpty() }
             .toTypedArray()[0].split("-".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()[1].trim()
+        if (docName.contains(".pdf")) {
+            Thread.sleep(500)
+            FileUtils.copyFile(
+                File("$monitorFolderPath\\${docName}"), File("$destinationPath\\SHP-${folderName}.pdf")
+            )
+            return
+        }
         createFolder(folderName)
         Thread.sleep(500)
         FileUtils.copyFile(
@@ -124,6 +131,7 @@ class MonitorServiceImpl : MonitoringService {
         }
         return scaleRatio
     }
+
     @Scheduled(cron = "0 59 02 ? * *")
     override fun clearTemp() {
         LOG.info("Clearing Temp Folder")
