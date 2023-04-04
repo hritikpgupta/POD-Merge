@@ -4,11 +4,11 @@ package com.caleta.podmerge.serviceImpl
 import com.caleta.podmerge.service.MonitoringService
 import com.itextpdf.text.Document
 import com.itextpdf.text.Image
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
 import com.itextpdf.text.Rectangle
 import com.itextpdf.text.pdf.PdfWriter
 import org.apache.commons.io.FileUtils
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.context.event.ApplicationReadyEvent
@@ -42,7 +42,6 @@ class MonitorServiceImpl : MonitoringService {
     @Value("\${temp-path}")
     private lateinit var tempPath: String
 
-
     @EventListener(value = [ApplicationReadyEvent::class], condition = "!@environment.acceptsProfiles('test')")
     override fun startMonitoring() {
         var key: WatchKey
@@ -63,6 +62,7 @@ class MonitorServiceImpl : MonitoringService {
     }
 
     private fun processFile(docName: String) {
+        LOG.info("Processing file : $docName")
         val folderName = docName.substring(0, docName.indexOf(".")).split(" ".toRegex()).dropLastWhile { it.isEmpty() }
             .toTypedArray()[0].split("-".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()[1].trim()
         createFolder(folderName)
@@ -81,6 +81,7 @@ class MonitorServiceImpl : MonitoringService {
     }
 
     private fun createPDF(folderName: String, fileName: String) {
+        LOG.info("Creating PDF $fileName.pdf")
         try {
             val document = Document()
             PdfWriter.getInstance(document, FileOutputStream("$destinationPath\\SHP-${fileName}.pdf"))
@@ -96,7 +97,10 @@ class MonitorServiceImpl : MonitoringService {
                 }
             }
             document.close()
-        }catch (ignored : Exception){}
+        } catch (e: Exception) {
+            LOG.info("Error creating PDF $fileName.pdf")
+            LOG.error(e.message)
+        }
     }
 
     private fun calculateScaleRatio(doc: Document, image: Image): Float {
@@ -120,14 +124,15 @@ class MonitorServiceImpl : MonitoringService {
         }
         return scaleRatio
     }
-
     @Scheduled(cron = "0 59 02 ? * *")
-    override fun clearTemp(){
+    override fun clearTemp() {
         LOG.info("Clearing Temp Folder")
         File("$tempPath\\").listFiles()?.forEach {
             try {
                 FileUtils.deleteDirectory(it)
-            }catch (ignored : Exception){}
+            } catch (e: Exception) {
+                LOG.error(e.message)
+            }
         }
 
     }

@@ -7,7 +7,10 @@ import org.springframework.scheduling.annotation.EnableScheduling
 @SpringBootApplication
 @EnableScheduling
 class PodMergeApplication
-
 fun main(args: Array<String>) {
-	runApplication<PodMergeApplication>(*args)
+	try {
+		runApplication<PodMergeApplication>(*args)
+	}catch (e : Exception){
+		e.printStackTrace()
+	}
 }
