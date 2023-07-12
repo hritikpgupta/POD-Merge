@@ -18,6 +18,7 @@ import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Service
 import java.io.File
 import java.io.FileOutputStream
+import java.lang.Thread.sleep
 import java.nio.file.WatchEvent
 import java.nio.file.WatchKey
 import java.nio.file.WatchService
@@ -48,16 +49,24 @@ class MonitorServiceImpl : MonitoringService {
         LOG.info("Started Monitoring Folder")
         try {
             while (watchService.take().also { key = it } != null) {
-                val executorService = Executors.newCachedThreadPool()
-                key.pollEvents().forEach(Consumer { event: WatchEvent<*> ->
-                    executorService.execute {
-                        processFile(event.context().toString())
+                sleep(500)
+                key.pollEvents().forEach {
+                    if (it != null) {
+                        if(it.context() != null){
+                            processFile(it.context().toString())
+                        }else{
+                            LOG.info("Context is null")
+                        }
+                    }else{
+                        LOG.info("WatchEvent is null")
                     }
-                })
+                }
                 key.reset()
             }
         } catch (e: Exception) {
-            LOG.error("Error detected while monitoring folder.", e)
+            LOG.error("Error detected while monitoring folder.")
+            LOG.error(e.message)
+
         }
     }
 
@@ -66,18 +75,18 @@ class MonitorServiceImpl : MonitoringService {
         val folderName = docName.substring(0, docName.indexOf(".")).split(" ".toRegex()).dropLastWhile { it.isEmpty() }
             .toTypedArray()[0].split("-".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()[1].trim()
         if (docName.contains(".pdf")) {
-            Thread.sleep(500)
+            sleep(100)
             FileUtils.copyFile(
                 File("$monitorFolderPath\\${docName}"), File("$destinationPath\\SHP-${folderName}.pdf")
             )
             return
         }
         createFolder(folderName)
-        Thread.sleep(500)
+        sleep(100)
         FileUtils.copyFile(
             File("$monitorFolderPath\\${docName}"), File("$tempPath\\$folderName\\${docName}")
         )
-        Thread.sleep(500)
+        sleep(500)
         createPDF(folderName, folderName)
     }
 
@@ -132,7 +141,7 @@ class MonitorServiceImpl : MonitoringService {
         return scaleRatio
     }
 
-    @Scheduled(cron = "0 59 02 ? * *")
+    @Scheduled(cron = "0 0 12 ? * SUN")
     override fun clearTemp() {
         LOG.info("Clearing Temp Folder")
         File("$tempPath\\").listFiles()?.forEach {
